@@ -43,3 +43,8 @@ h2 {
 .axis-top line {
 	stroke: #c6c6c6;
 }
+
+.legend {
+	color: #000000;
+	font-size: 12px;
+}

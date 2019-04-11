@@ -121,7 +121,41 @@ function drawAxesVis1Chart(countries, scales, config) {
 }
 
 function drawLegendVis1Chart(countries, scales, config) {
-	let {container, margin, height} = config;
+	let {container, margin, height, width} = config;
+	let xLegend = width-150;
+	let yLegend = height-70;
+
+	let legend = container.append("g")
+		.attr("class", "legend")
+		
+	legend.append("rect")
+		.attr("x", xLegend)
+		.attr("y", yLegend)
+		.attr("height", 50)
+		.attr("width", 125)
+		.attr("fill", "#ffffff")
+
+	legend.append("circle")
+		.attr("cx", xLegend+15)
+		.attr("cy", yLegend+15)
+		.attr("r", 5)
+		.attr("fill", "#DD7765")
+
+	legend.append("circle")
+		.attr("cx", xLegend+15)
+		.attr("cy", yLegend+35)
+		.attr("r", 5)
+		.attr("fill", "#19555C")
+
+	legend.append("text")
+		.attr("x", xLegend+25)
+		.attr("y", yLegend+20)
+		.text("Amount Donated")
+
+	legend.append("text")
+		.attr("x", xLegend+25)
+		.attr("y", yLegend+40)
+		.text("Amount Received")
 }
 
 function drawVis1Chart(countries) {
