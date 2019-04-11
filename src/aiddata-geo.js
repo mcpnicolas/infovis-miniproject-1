@@ -42,12 +42,12 @@ function groupByCountry(data) {
 }
 
 function getVis1ChartConfig() {
-	let width = 700;
+	let width = 730;
 	let height = 500;
 	let margin = {
-		top: 30,
+		top: 20,
 		bottom: 10,
-		left: 100,
+		left: 110,
 		right: 10
 	}
 	let bodyHeight = height - margin.top - margin.bottom
@@ -69,11 +69,11 @@ function getVis1ChartScales(countries, config) {
 	let yScale = d3.scaleBand()
 		.domain(countries.map(c => c.Country))
 		.range([0,bodyHeight])
-		.padding(0.2)
+		.padding(0.15)
 
 	let xScale = d3.scaleLinear()
 		.domain([0, maxAmount])
-		.range([0, bodyWidth/2])
+		.range([0, bodyWidth])
 
 	return { xScale, yScale }
 }
@@ -89,29 +89,47 @@ function drawBarsVis1Chart(countries, scales, config) {
 
 	bars.enter().append("rect")
 		.attr("y", (d) => yScale(d.Country))
-		.attr("x", (bodyWidth/2)+margin.right)
+		.attr("x", 1)
 		.attr("height", yScale.bandwidth())
-		.attr("width", (d) => xScale(d.AmountReceived))
-		.attr("fill", "#1F4F50")
+		.attr("width", (d) => xScale(d.AmountDonated))
+		.attr("fill", "#DD7765")
 
 	bars.enter().append("rect")
 		.attr("y", (d) => yScale(d.Country))
-		.attr("x", bodyWidth/2)
+		//.attr("x", (bodyWidth/2)+margin.right)
+		.attr("x", (d) => xScale(d.AmountDonated)+1)
 		.attr("height", yScale.bandwidth())
-		.attr("width", (d) => xScale(d.AmountDonated))
-		.attr("fill", "#C96F69")
-		.attr("transform", `translate(${bodyWidth}, 0) scale(-1, 1)`)
+		.attr("width", (d) => xScale(d.AmountReceived))
+		.attr("fill", "#19555C")
 }
 
-function drawAxesVis1Chart(airlines, scales, config) {
+function drawAxesVis1Chart(countries, scales, config) {
+	let { xScale, yScale } = scales
+	let {container, margin, height} = config;
+	
+	let axisX = d3.axisTop(xScale).ticks(10).tickSize(-(height-margin.bottom-margin.top)).tickFormat(d => "$" + d/1000000000 + "B")
+	container.append("g")
+		.style("transform", `translate(${margin.left}px,${margin.top}px)`)
+		.call(axisX)
+		.attr("class", "axis-top")
 
+	let axisY = d3.axisLeft(yScale)
+	container.append("g")
+		.style("transform", `translate(${margin.left}px,${margin.top}px)`)
+		.call(axisY)
+		.attr("class", "axis-left")
+}
+
+function drawLegendVis1Chart(countries, scales, config) {
+	let {container, margin, height} = config;
 }
 
 function drawVis1Chart(countries) {
 	let config = getVis1ChartConfig()
 	let scales = getVis1ChartScales(countries, config)
-	drawBarsVis1Chart(countries, scales, config)
 	drawAxesVis1Chart(countries, scales, config)
+	drawBarsVis1Chart(countries, scales, config)
+	drawLegendVis1Chart(countries, scales, config)
 }
 
 function showData() {
