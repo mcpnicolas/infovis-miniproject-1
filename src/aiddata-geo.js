@@ -2,9 +2,11 @@ let store = {}
 
 function loadData() {
 	return Promise.all([
-		d3.csv("aiddata-countries-only.csv")
+		d3.csv("aiddata-countries-only.csv"),
+		d3.json("countries.geo.json")
 	]).then(datasets => {
 		store.aiddata = datasets[0]
+		store.geoJSON = datasets[1]
 		console.log("Loaded dataset")
 		return store;
 	})
@@ -60,6 +62,36 @@ function getVis1ChartConfig() {
 		.attr("height", height)
 
 	return { width, height, margin, bodyHeight, bodyWidth, container }
+}
+
+function getVis2ChartConfig() {
+	let width = 750;
+	let height = 450;
+	let margin = {
+		top: 20,
+		bottom: 20,
+		left: 10,
+		right: 10
+	}
+	let bodyHeight = height - margin.top - margin.bottom
+	let bodyWidth = width - margin.left - margin.right
+
+	let container = d3.select("#Vis2Chart")
+	
+	container
+		.attr("width", width)
+		.attr("height", height)
+
+	return { width, height, margin, bodyHeight, bodyWidth, container }
+}
+
+function getMapProjection(config) {
+	let { width, height } = config;
+	let projection = d3.geoMercator()
+	projection.scale(100).translate([width / 2, height / 2+85])
+				
+	store.mapProjection = projection;
+	return projection;
 }
 
 function getVis1ChartScales(countries, config) {
@@ -166,11 +198,31 @@ function drawVis1Chart(countries) {
 	drawLegendVis1Chart(countries, scales, config)
 }
 
+function drawVis2Chart(countries, geo) {
+	let config = getVis2ChartConfig()
+	let container = config.container
+	let projection = getMapProjection(config)
+	let path = d3.geoPath().projection(projection)
+	
+	container.selectAll("path").data(geo.features)
+		.enter().append("path")
+		.attr("d", d => path(d))
+		.attr("stroke", "#ccc")
+		.attr("fill", "#eee")
+
+	// getVis2ChartScales() ???
+	// drawAxesVis2Chart(countries, scales, config)
+	// drawBarsVis2Chart(countries, scales, config)
+	// drawLegendVis2Chart(countries, scales, config)
+}
+
 function showData() {
 	let aiddata = store.aiddata
+	let geo = store.geoJSON
 	let countries = groupByCountry(aiddata)
 	console.log(countries)
 	drawVis1Chart(countries)
+	drawVis2Chart(countries, geo)
 }
 
 loadData().then(showData);

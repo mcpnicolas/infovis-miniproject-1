@@ -21,23 +21,28 @@ h1 {
 
 .sidebar {
 	height: 100%;
-  width: 350;
-  position: fixed;
-  z-index: 1; /* Stay on top */
-  top: 0; /* Stay at the top */
-  right: 0;
+	width: 30%;
+	position: fixed;
+	z-index: 1; /* Stay on top */
+	top: 0; /* Stay at the top */
+	right: 0;
 	background-color: #e8e8e8;
 	color: #666666;
-  overflow-x: hidden;
-  padding-top: 20px;
+	overflow-x: hidden;
+	padding-top: 20px;
 }
 
 .sidebar h2, .sidebar p {
-	margin: 15px 20px 15px 20px;
+	margin: 10px 20px 10px 20px;
+	width: 90%;
 }
 
 .sidebar ul {
 	margin: 10px 20px 10px 10px;
+}
+
+#Vis2Chart {
+	width: 70%;
 }
 
 li {
@@ -46,6 +51,7 @@ li {
 
 h2, p {
 	margin: 10px 0 10px 0;
+	width: 70%;
 }
 
 h2 {
