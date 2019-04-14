@@ -203,6 +203,8 @@ function drawVis2Chart(countries, geo) {
 	let container = config.container
 	let projection = getMapProjection(config)
 	let path = d3.geoPath().projection(projection)
+	// only map centroids for countries in aiddata
+	let centroids = geo.features.map(function (country) { return path.centroid(country) })
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")
@@ -210,10 +212,14 @@ function drawVis2Chart(countries, geo) {
 		.attr("stroke", "#ccc")
 		.attr("fill", "#eee")
 
-	// getVis2ChartScales() ???
-	// drawAxesVis2Chart(countries, scales, config)
-	// drawBarsVis2Chart(countries, scales, config)
-	// drawLegendVis2Chart(countries, scales, config)
+	container.selectAll("circle")
+		.data(centroids)
+		.enter()
+		.append("circle")
+		.attr("r", 5)
+		.attr("fill", "#2a5599")
+		.attr("cx", function (d){ return d[0] })
+		.attr("cy", function (d){ return d[1] })
 }
 
 function showData() {
