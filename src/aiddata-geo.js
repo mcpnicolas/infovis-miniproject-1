@@ -204,7 +204,6 @@ function drawVis2Chart(countries, geo) {
 	let container = config.container
 	let projection = getMapProjection(config)
 	let path = d3.geoPath().projection(projection)
-	//console.log(geo.features)
 	
 	let centroids = []
 
@@ -215,9 +214,9 @@ function drawVis2Chart(countries, geo) {
 	// Monaco
 	// Lichtenstein
 	let exceptions = [
-		"United States of America",
-		"Slovakia",
-		"South Korea"
+		["United States of America","United States"],
+		["Slovakia","Slovak Republic"],
+		["South Korea","Korea"]
 	]
 
 	for (geoCountry in geo.features) {
@@ -243,9 +242,9 @@ function drawVis2Chart(countries, geo) {
 			}
 			else {
 				for (let i = 0; i < exceptions.length; i++) {
-					if (geo.features[geoCountry].properties.name == exceptions[i]) {
+					if (geo.features[geoCountry].properties.name == exceptions[i][0]) {
 						centroids.push([
-							geo.features[geoCountry].properties.name,
+							exceptions[i][1],
 							path.centroid(geo.features[geoCountry])
 						])
 						exceptions.splice(i, 1)
