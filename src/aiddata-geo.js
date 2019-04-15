@@ -12,7 +12,7 @@ function loadData() {
 	})
 }
 
-function groupByCountry(data) {
+function groupByCountryArray(data) {
 	// Iterate over each donation, producing a dictionary where countries are keys
 	// and values are the USD amount donated to or received by the country
 
@@ -41,7 +41,34 @@ function groupByCountry(data) {
 		return d3.descending(a.AmountDonated-a.AmountReceived, b.AmountDonated-b.AmountReceived)
 		//return d3.ascending(a.Country, b.Country)
 	})
-  return result
+  	return result
+}
+
+function groupByCountryMap(data) {
+	// Iterate over each donation, producing a dictionary where countries are keys
+	// and values are the USD amount donated to or received by the country
+
+	let result = data.reduce((result, d) => {
+		let currentDonor = result[d.donor] || {
+			"Country": d.donor,
+			"AmountDonated": 0,
+			"AmountReceived": 0
+		}
+		currentDonor.AmountDonated += parseInt(d.commitment_amount_usd_constant)
+		result[d.donor] = currentDonor
+
+		let currentRecipient = result[d.recipient] || {
+			"Country": d.recipient,
+			"AmountDonated": 0,
+			"AmountReceived": 0
+		}
+		currentRecipient.AmountReceived += parseInt(d.commitment_amount_usd_constant)
+		result[d.recipient] = currentRecipient
+	
+	return result;
+	},{})
+
+  	return result
 }
 
 function getVis1ChartConfig() {
@@ -84,6 +111,21 @@ function getVis2ChartConfig() {
 		.attr("height", height)
 
 	return { width, height, margin, bodyHeight, bodyWidth, container }
+}
+
+function buildLinearScaleValueToArea(centroids) {
+	let maxValue = 0;
+	for (circle in centroids) {
+		if (centroids[circle][2] > maxValue) maxValue = centroids[circle][2]
+	}
+	let maxCircleRadius = 50;
+    let maxCircleArea = Math.PI * Math.pow(maxCircleRadius, 2);
+    let circleAreaScale = d3.scaleLinear()
+    	.domain([0, maxValue])
+    	.range([10, maxCircleArea])
+	
+	//return Math.sqrt((d) => circleAreaScale(d) / Math.PI)
+	return circleAreaScale;
 }
 
 function getMapProjection(config) {
@@ -138,7 +180,7 @@ function drawBarsVis1Chart(countries, scales, config) {
 
 function drawAxesVis1Chart(countries, scales, config) {
 	let { xScale, yScale } = scales
-	let {container, margin, height} = config;
+	let { container, margin, height } = config;
 	
 	let axisX = d3.axisTop(xScale).ticks(10).tickSize(-(height-margin.bottom-margin.top)).tickFormat(d => "$" + d/1000000000 + "B")
 	container.append("g")
@@ -224,19 +266,22 @@ function drawVis2Chart(countries, geo) {
 			if (geo.features[geoCountry].properties.name == countries[aidCountry].Country) {
 				centroids.push([
 					countries[aidCountry].Country,
-					path.centroid(geo.features[geoCountry])
+					path.centroid(geo.features[geoCountry]),
+					countries[aidCountry].AmountDonated+countries[aidCountry].AmountReceived
 				])
 
 				if (geo.features[geoCountry].properties.name == "Switzerland") {
 					centroids.push([
-						"Lichtenstein",
-						path.centroid(geo.features[geoCountry])
+						"Liechtenstein",
+						path.centroid(geo.features[geoCountry]),
+						countries["Liechtenstein"].AmountDonated+countries["Liechtenstein"].AmountReceived
 					])
 				}
 				else if (geo.features[geoCountry].properties.name == "Italy") {
 					centroids.push([
 						"Monaco",
-						path.centroid(geo.features[geoCountry])
+						path.centroid(geo.features[geoCountry]),
+						countries["Monaco"].AmountDonated+countries["Monaco"].AmountReceived
 					])
 				}
 			}
@@ -245,7 +290,8 @@ function drawVis2Chart(countries, geo) {
 					if (geo.features[geoCountry].properties.name == exceptions[i][0]) {
 						centroids.push([
 							exceptions[i][1],
-							path.centroid(geo.features[geoCountry])
+							path.centroid(geo.features[geoCountry]),
+							countries[exceptions[i][1]].AmountDonated+countries[exceptions[i][1]].AmountReceived
 						])
 						exceptions.splice(i, 1)
 					}
@@ -254,27 +300,32 @@ function drawVis2Chart(countries, geo) {
 		}
 	}
 	console.log(centroids)
+	let cScale = buildLinearScaleValueToArea(centroids)
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")
 		.attr("d", d => path(d))
-		.attr("stroke", "#ccc")
+		.attr("stroke", "transparent")
 		.attr("fill", "#eee")
 
 	container.selectAll("circle")
 		.data(centroids)
 		.enter()
 		.append("circle")
-		.attr("r", 5) // later modify radius to scale with total amount?
+		//.attr("r",5)
+		.attr("r", function(d) { 
+			let area = cScale(d[2])
+			return Math.sqrt(area / Math.PI)
+		})
 		.attr("fill", "#2a5599")
 		.attr("cx", function (d){ return d[1][0] })
 		.attr("cy", function (d){ return d[1][1] })
 
-
 	let simulation = d3.forceSimulation(centroids)
-		.force('charge', d3.forceManyBody().strength(-7))
+		.force('charge', d3.forceManyBody().strength(-5))
 		.force('collision', d3.forceCollide().radius(function(d) {
-			return d.radius
+			let area = cScale(d[2])
+			return Math.sqrt(area / Math.PI)
 		}))
 		.force('x', d3.forceX().x(function(d) {
 			return d[1][0]
@@ -306,10 +357,11 @@ function drawVis2Chart(countries, geo) {
 function showData() {
 	let aiddata = store.aiddata
 	let geo = store.geoJSON
-	let countries = groupByCountry(aiddata)
-	console.log(countries)
-	drawVis1Chart(countries)
-	drawVis2Chart(countries, geo)
+	let countriesList = groupByCountryArray(aiddata)
+	let countriesMap = groupByCountryMap(aiddata)
+	console.log(countriesList)
+	drawVis1Chart(countriesList)
+	drawVis2Chart(countriesMap, geo)
 }
 
 loadData().then(showData);
