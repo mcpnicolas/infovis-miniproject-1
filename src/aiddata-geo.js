@@ -163,7 +163,7 @@ function getColorFillScale(countries) {
 
 	let colorScale = d3.scaleSqrt()
 		.domain([minValue,0,maxValue])
-	  	.range(["#DD7765", "#C1C1C1","#19555C"]);
+	  	.range(["#19555C", "#C1C1C1","#DD7765"]);
 	  
 	return colorScale
 }
@@ -171,7 +171,7 @@ function getColorFillScale(countries) {
 function getColorOutlineScale() {
 	let colorScale = d3.scaleOrdinal()
 		.domain(-1,1)
-		.range(["#DD7765","#19555C"])
+		.range(["#19555C","#DD7765"])
 	return colorScale
 }
 
