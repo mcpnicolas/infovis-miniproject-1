@@ -172,8 +172,9 @@ function getColorFillScale(countries) {
 	let minMax = getMinMaxNet(countries)
 	let colorScale = d3.scaleSqrt()
 		.domain([minMax["min"],0,minMax["max"]])
-	  	.range(["#DB6549", "#f2f2f2","#045431"]);
-	  
+		.range(["#DB6549", "#f2f2f2","#045431"])
+		.interpolate(d3.interpolateHcl)
+	
 	return colorScale
 }
 
