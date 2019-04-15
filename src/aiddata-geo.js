@@ -39,7 +39,8 @@ function groupByCountry(data) {
 	result = Object.keys(result).map(key => result[key])
 	result.sort((a, b) => {
 		return d3.descending(a.AmountDonated-a.AmountReceived, b.AmountDonated-b.AmountReceived)
-		})
+		//return d3.ascending(a.Country, b.Country)
+	})
   return result
 }
 
@@ -203,8 +204,57 @@ function drawVis2Chart(countries, geo) {
 	let container = config.container
 	let projection = getMapProjection(config)
 	let path = d3.geoPath().projection(projection)
-	// only map centroids for countries in aiddata
-	let centroids = geo.features.map(function (country) { return path.centroid(country) })
+	//console.log(geo.features)
+	
+	let centroids = []
+
+	// Exceptions:
+	// United States of America == United States
+	// Slovakia == Slovak Republic
+	// South Korea == Korea
+	// Monaco
+	// Lichtenstein
+	let exceptions = [
+		"United States of America",
+		"Slovakia",
+		"South Korea"
+	]
+
+	for (geoCountry in geo.features) {
+		for (aidCountry in countries) {
+			if (geo.features[geoCountry].properties.name == countries[aidCountry].Country) {
+				centroids.push([
+					countries[aidCountry].Country,
+					path.centroid(geo.features[geoCountry])
+				])
+
+				if (geo.features[geoCountry].properties.name == "Switzerland") {
+					centroids.push([
+						"Lichtenstein",
+						path.centroid(geo.features[geoCountry])
+					])
+				}
+				else if (geo.features[geoCountry].properties.name == "Italy") {
+					centroids.push([
+						"Monaco",
+						path.centroid(geo.features[geoCountry])
+					])
+				}
+			}
+			else {
+				for (let i = 0; i < exceptions.length; i++) {
+					if (geo.features[geoCountry].properties.name == exceptions[i]) {
+						centroids.push([
+							geo.features[geoCountry].properties.name,
+							path.centroid(geo.features[geoCountry])
+						])
+						exceptions.splice(i, 1)
+					}
+				}
+			}
+		}
+	}
+	console.log(centroids)
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")
@@ -216,10 +266,42 @@ function drawVis2Chart(countries, geo) {
 		.data(centroids)
 		.enter()
 		.append("circle")
-		.attr("r", 5)
+		.attr("r", 5) // later modify radius to scale with total amount?
 		.attr("fill", "#2a5599")
-		.attr("cx", function (d){ return d[0] })
-		.attr("cy", function (d){ return d[1] })
+		.attr("cx", function (d){ return d[1][0] })
+		.attr("cy", function (d){ return d[1][1] })
+
+
+	let simulation = d3.forceSimulation(centroids)
+		.force('charge', d3.forceManyBody().strength(-7))
+		.force('collision', d3.forceCollide().radius(function(d) {
+			return d.radius
+		}))
+		.force('x', d3.forceX().x(function(d) {
+			return d[1][0]
+		  }))
+		.force('y', d3.forceY().y(function(d) {
+			return d[1][1]
+		  }))
+		.on('tick', ticked)
+	  
+	function ticked() {
+		var distribution = container.selectAll('circle').data(centroids)
+	
+		distribution.enter()
+			.append('circle')
+			.attr('r', function(d) {
+				return d.radius
+			})
+			.merge(distribution).attr('cx', function(d) {
+				return d.x
+			})
+			.attr('cy', function(d) {
+				return d.y
+			})
+		
+		distribution.exit().remove()
+	}
 }
 
 function showData() {
