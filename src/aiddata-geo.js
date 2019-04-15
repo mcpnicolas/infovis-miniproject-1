@@ -152,26 +152,35 @@ function getLinearScaleValueToArea(centroids) {
 	return circleAreaScale;
 }
 
-function getColorFillScale(countries) {
-	let maxValue = 0
-	let minValue = 0
-	for (c in countries) {
-		let net = countries[c].AmountDonated-countries[c].AmountReceived
-		if (net > maxValue) maxValue = net
-		else if (net < minValue) minValue = net
+function getMinMaxNet(countries) {
+
+	let minMax = {
+		"min": 0,
+		"max": 0
 	}
 
+	for (c in countries) {
+		let net = countries[c].AmountReceived-countries[c].AmountDonated
+		if (net > minMax["max"]) minMax["max"] = net
+		else if (net < minMax["min"]) minMax["min"] = net
+	}
+
+	return minMax
+}
+
+function getColorFillScale(countries) {
+	let minMax = getMinMaxNet(countries)
 	let colorScale = d3.scaleSqrt()
-		.domain([minValue,0,maxValue])
-	  	.range(["#19555C", "#C1C1C1","#DD7765"]);
+		.domain([minMax["min"],0,minMax["max"]])
+	  	.range(["#DB6549", "#f2f2f2","#045431"]);
 	  
 	return colorScale
 }
 
 function getColorOutlineScale() {
 	let colorScale = d3.scaleOrdinal()
-		.domain(-1,1)
-		.range(["#19555C","#DD7765"])
+		.domain([-1,1])
+		.range(["#DB6549","#045431"])
 	return colorScale
 }
 
@@ -189,7 +198,7 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", 1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountDonated))
-		.attr("fill", "#DD7765")
+		.attr("fill", "#DB6549")
 
 	bars.enter().append("rect")
 		.attr("y", (d) => yScale(d.Country))
@@ -197,7 +206,7 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", (d) => xScale(d.AmountDonated)+1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountReceived))
-		.attr("fill", "#19555C")
+		.attr("fill", "#045431")
 }
 
 function drawAxesVis1Chart(countries, scales, config) {
@@ -236,13 +245,13 @@ function drawLegendVis1Chart(countries, scales, config) {
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+15)
 		.attr("r", 5)
-		.attr("fill", "#DD7765")
+		.attr("fill", "#DB6549")
 
 	legend.append("circle")
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+35)
 		.attr("r", 5)
-		.attr("fill", "#19555C")
+		.attr("fill", "#045431")
 
 	legend.append("text")
 		.attr("x", xLegend+25)
@@ -263,11 +272,71 @@ function drawVis1Chart(countries) {
 	drawLegendVis1Chart(countries, scales, config)
 }
 
+function drawLegendVis2Chart(divergingColorScale, config, minNet, maxNet) {
+	let {container, margin, height, width} = config;
+	let xLegend = width - 100;
+	let yLegend = 0;
+
+	let legend = container.append("g")
+		.attr("class", "legend")
+		
+	legend.append("rect")
+		.attr("x", xLegend)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 180)
+		.style("fill", "url(#linear-gradient)")
+
+	legend.append("text")
+		.attr("x", xLegend)
+		.attr("y", yLegend+12)
+		.text("Net Amount (Received - Donated)")
+	
+	var defs = legend.append("defs")
+	var linearGradient = defs.append("linearGradient")
+		.attr("id", "linear-gradient")
+		.attr("x1", "0%")
+		.attr("y1", "0%")
+		.attr("x2", "100%")
+		.attr("y2", "0%");
+
+	//Set the color for the start (0%)
+	linearGradient.append("stop")
+		.attr("offset", "0%")
+		.attr("stop-color", divergingColorScale(minNet))
+
+	linearGradient.append("stop")
+		.attr("offset", "50%")
+		.attr("stop-color", divergingColorScale(0))
+
+	//Set the color for the end (100%)
+	linearGradient.append("stop")
+		.attr("offset", "100%")
+		.attr("stop-color", divergingColorScale(maxNet))
+	
+		
+	legend.append("text")
+		.attr("x", xLegend)
+		.attr("y", yLegend+50)
+		.text("$" + (minNet/1000000000).toString().substring(0,4) + "B")
+
+	legend.append("text")
+		.attr("x", xLegend+145)
+		.attr("y", yLegend+50)
+		.text("$" + (maxNet/1000000000).toString().substring(0,3) + "B")
+		
+}
+
 function drawVis2Chart(countries, geo) {
 	let config = getVis2ChartConfig()
 	let container = config.container
 	let projection = getMapProjection(config)
 	let path = d3.geoPath().projection(projection)
+	let colorFillScale = getColorFillScale(countries)
+	let colorOutlineScale = getColorOutlineScale()
+
+	let minMax = getMinMaxNet(countries)
+	drawLegendVis2Chart(colorFillScale, config, minMax["min"], minMax["max"])
 	
 	let centroids = []
 
@@ -290,7 +359,7 @@ function drawVis2Chart(countries, geo) {
 					countries[aidCountry].Country,
 					path.centroid(geo.features[geoCountry]),
 					countries[aidCountry].AmountDonated+countries[aidCountry].AmountReceived,
-					countries[aidCountry].AmountDonated-countries[aidCountry].AmountReceived
+					countries[aidCountry].AmountReceived-countries[aidCountry].AmountDonated
 				])
 
 				if (geo.features[geoCountry].properties.name == "Switzerland") {
@@ -298,7 +367,7 @@ function drawVis2Chart(countries, geo) {
 						"Liechtenstein",
 						path.centroid(geo.features[geoCountry]),
 						countries["Liechtenstein"].AmountDonated+countries["Liechtenstein"].AmountReceived,
-						countries["Liechtenstein"].AmountDonated-countries["Liechtenstein"].AmountReceived
+						countries["Liechtenstein"].AmountReceived-countries["Liechtenstein"].AmountDonated
 					])
 				}
 				else if (geo.features[geoCountry].properties.name == "Italy") {
@@ -306,7 +375,7 @@ function drawVis2Chart(countries, geo) {
 						"Monaco",
 						path.centroid(geo.features[geoCountry]),
 						countries["Monaco"].AmountDonated+countries["Monaco"].AmountReceived,
-						countries["Monaco"].AmountDonated-countries["Monaco"].AmountReceived
+						countries["Monaco"].AmountReceived-countries["Monaco"].AmountDonated
 					])
 				}
 			}
@@ -317,7 +386,7 @@ function drawVis2Chart(countries, geo) {
 							exceptions[i][1],
 							path.centroid(geo.features[geoCountry]),
 							countries[exceptions[i][1]].AmountDonated+countries[exceptions[i][1]].AmountReceived,
-							countries[exceptions[i][1]].AmountDonated-countries[exceptions[i][1]].AmountReceived
+							countries[exceptions[i][1]].AmountReceived-countries[exceptions[i][1]].AmountDonated
 						])
 						exceptions.splice(i, 1)
 					}
@@ -327,8 +396,6 @@ function drawVis2Chart(countries, geo) {
 	}
 	console.log(centroids)
 	let circleScale = getLinearScaleValueToArea(centroids)
-	let colorFillScale = getColorFillScale(countries)
-	let colorOutlineScale = getColorOutlineScale()
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")

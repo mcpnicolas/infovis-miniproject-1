@@ -77,4 +77,11 @@ h2 {
 .legend {
 	color: #000000;
 	font-size: 12px;
+	z-index: 1;
+	position: absolute;
+}
+
+#Vis2Chart path, #Vis2Chart circle {
+	z-index: -1;
+	position: relative;
 }
