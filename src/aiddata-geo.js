@@ -138,34 +138,41 @@ function getVis1ChartScales(countries, config) {
 	return { xScale, yScale }
 }
 
-function getLinearScaleValueToArea(centroids) {
-	let maxValue = 0;
-	for (circle in centroids) {
-		if (centroids[circle][2] > maxValue) maxValue = centroids[circle][2]
-	}
-	let maxCircleRadius = 50;
-    let maxCircleArea = Math.PI * Math.pow(maxCircleRadius, 2);
-    let circleAreaScale = d3.scaleLinear()
-    	.domain([0, maxValue])
-    	.range([10, maxCircleArea])
-	
-	return circleAreaScale;
-}
-
 function getMinMaxNet(countries) {
-
 	let minMax = {
 		"min": 0,
 		"max": 0
 	}
-
 	for (c in countries) {
 		let net = countries[c].AmountReceived-countries[c].AmountDonated
 		if (net > minMax["max"]) minMax["max"] = net
 		else if (net < minMax["min"]) minMax["min"] = net
 	}
-
 	return minMax
+}
+
+function getMinMaxTotal(countries) {
+	let minMax = {
+		"min": 0,
+		"max": 0
+	}
+	for (c in countries) {
+		let net = countries[c].AmountReceived+countries[c].AmountDonated
+		if (net > minMax["max"]) minMax["max"] = net
+		else if (net < minMax["min"]) minMax["min"] = net
+	}
+	return minMax
+}
+
+function getLinearScaleValueToArea(countries) {
+	let minMaxTotal = getMinMaxTotal(countries)
+	let maxCircleRadius = 50;
+    let maxCircleArea = Math.PI * Math.pow(maxCircleRadius, 2);
+    let circleAreaScale = d3.scaleLinear()
+    	.domain([minMaxTotal["min"], minMaxTotal["max"]])
+    	.range([10, maxCircleArea])
+	
+	return circleAreaScale;
 }
 
 function getColorFillScale(countries) {
@@ -273,7 +280,7 @@ function drawVis1Chart(countries) {
 	drawLegendVis1Chart(countries, scales, config)
 }
 
-function drawLegendVis2Chart(divergingColorScale, config, minNet, maxNet) {
+function drawLegendVis2Chart(divergingColorScale, circleAreaScale, config, minNet, maxNet, minTotal, maxTotal) {
 	let {container, margin, height, width} = config;
 	let xLegend = width - 100;
 	let yLegend = 0;
@@ -301,7 +308,6 @@ function drawLegendVis2Chart(divergingColorScale, config, minNet, maxNet) {
 		.attr("x2", "100%")
 		.attr("y2", "0%");
 
-	//Set the color for the start (0%)
 	linearGradient.append("stop")
 		.attr("offset", "0%")
 		.attr("stop-color", divergingColorScale(minNet))
@@ -310,11 +316,9 @@ function drawLegendVis2Chart(divergingColorScale, config, minNet, maxNet) {
 		.attr("offset", "50%")
 		.attr("stop-color", divergingColorScale(0))
 
-	//Set the color for the end (100%)
 	linearGradient.append("stop")
 		.attr("offset", "100%")
 		.attr("stop-color", divergingColorScale(maxNet))
-	
 		
 	legend.append("text")
 		.attr("x", xLegend)
@@ -325,6 +329,33 @@ function drawLegendVis2Chart(divergingColorScale, config, minNet, maxNet) {
 		.attr("x", xLegend+145)
 		.attr("y", yLegend+50)
 		.text("$" + (maxNet/1000000000).toString().substring(0,3) + "B")
+
+	legend.append("text")
+		.attr("x", xLegend+45)
+		.attr("y", yLegend+80)
+		.text("Total Amount Exchanged")
+
+	legend.append("circle")
+		.attr("class","legend-circle-max")
+		.attr("cx", xLegend+120)
+		.attr("cy", yLegend+145)
+		.attr("r", function() { 
+			let area = circleAreaScale(maxTotal)
+			return Math.sqrt(area / Math.PI)
+		})
+		.attr("fill", "transparent")
+		.attr("stroke", "#000000")
+
+	legend.append("circle")
+		.attr("class","legend-circle-min")
+		.attr("cx", xLegend+120)
+		.attr("cy", yLegend+145)
+		.attr("r", function() { 
+			let area = circleAreaScale(minTotal)
+			return Math.sqrt(area / Math.PI)
+		})
+		.attr("fill", "transparent")
+		.attr("stroke", "#000000")
 		
 }
 
@@ -335,9 +366,11 @@ function drawVis2Chart(countries, geo) {
 	let path = d3.geoPath().projection(projection)
 	let colorFillScale = getColorFillScale(countries)
 	let colorOutlineScale = getColorOutlineScale()
+	let circleScale = getLinearScaleValueToArea(countries)
 
-	let minMax = getMinMaxNet(countries)
-	drawLegendVis2Chart(colorFillScale, config, minMax["min"], minMax["max"])
+	let minMaxNet = getMinMaxNet(countries)
+	let minMaxTotal = getMinMaxTotal(countries)
+	drawLegendVis2Chart(colorFillScale, circleScale, config, minMaxNet["min"], minMaxNet["max"], minMaxTotal["min"], minMaxTotal["max"])
 	
 	let centroids = []
 
@@ -396,7 +429,6 @@ function drawVis2Chart(countries, geo) {
 		}
 	}
 	console.log(centroids)
-	let circleScale = getLinearScaleValueToArea(centroids)
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")
@@ -404,10 +436,11 @@ function drawVis2Chart(countries, geo) {
 		.attr("stroke", "transparent")
 		.attr("fill", "#eee")
 
-	container.selectAll("circle")
+	container.selectAll(".centroid")
 		.data(centroids)
 		.enter()
 		.append("circle")
+		.attr("class","centroid")
 		.attr("r", function(d) { 
 			let area = circleScale(d[2])
 			return Math.sqrt(area / Math.PI)
@@ -435,7 +468,7 @@ function drawVis2Chart(countries, geo) {
 		.on('tick', ticked)
 	  
 	function ticked() {
-		var distribution = container.selectAll('circle').data(centroids)
+		var distribution = container.selectAll('.centroid').data(centroids)
 	
 		distribution.enter()
 			.append('circle')
