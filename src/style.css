@@ -74,6 +74,14 @@ h2 {
 	stroke: #c6c6c6;
 }
 
+#Vis3Chart line {
+	stroke: transparent;
+}
+
+#Vis3Chart path {
+	stroke: transparent;
+}
+
 .legend {
 	color: #000000;
 	font-size: 12px;

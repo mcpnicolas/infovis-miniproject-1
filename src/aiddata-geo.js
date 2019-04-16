@@ -152,7 +152,7 @@ function getVis3ChartConfig() {
 	let width = 825;
 	let height = 500;
 	let margin = {
-		top: 100,
+		top: 150,
 		bottom: 10,
 		left: 100,
 		right: 10
@@ -575,6 +575,137 @@ function drawVis2Chart(countries, geo) {
 	}, (2 * 1000))
 }
 
+function wrap(text, width) {
+  text.each(function() {
+    let text = d3.select(this),
+        words = text.text().split(" ").reverse(),
+        word,
+        line = [],
+        lineNumber = 0,
+        lineHeight = 1, // ems
+        y = text.attr("y"),
+				 //dy = parseFloat(text.attr("dy")),
+				dy = 0,
+        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(" "));
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        tspan.text(line.join(" "));
+				line = [word];
+				if (lineNumber == 1) {
+					tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", lineNumber * lineHeight + dy + "em").text(word);
+				}
+				else {
+					tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+				}
+      }
+    }
+  });
+}
+
+function drawAxesVis3Chart(purposes, countriesList, xScale, yScale, config) {
+	let { container, margin, height } = config;
+	
+	let axisX = d3.axisTop(xScale)
+	container.append("g")
+		.style("transform", `translate(${margin.left}px,${margin.top-5}px)`)
+		.call(axisX)
+		.attr("class", "axis-top")
+		.selectAll("text")
+		.attr("transform", `rotate(-90)`)
+		.attr("dy", "1.25em")
+    .style("text-anchor", "start")
+	
+	let axisY = d3.axisLeft(yScale)
+	container.append("g")
+		.style("transform", `translate(${margin.left-5}px,${margin.top}px)`)
+		.call(axisY)
+		.attr("class", "axis-left")
+		.selectAll(".tick text")
+    .call(wrap, margin.left-5)
+}
+
+function drawLegendVis3Chart(colorScale, config) {
+	let {container, margin, height, width} = config;
+	let xLegend = 0;
+	let yLegend = 15;
+
+	let legend = container.append("g")
+		.attr("class", "legend")
+
+	legend.append("text")
+		.attr("x", xLegend)
+		.attr("y", yLegend+12)
+		.text("Percent of total donations to country")
+
+	legend.append("text")
+		.attr("x", xLegend)
+		.attr("y", yLegend+50)
+		.text("0%")
+
+	legend.append("rect")
+		.attr("x", xLegend)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 40)
+		.attr("fill", "#CDC094")
+
+	legend.append("rect")
+		.attr("x", xLegend+40)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 40)
+		.attr("fill", "#A4A063")
+
+	legend.append("text")
+		.attr("x", xLegend+35)
+		.attr("y", yLegend+50)
+		.text("1%")
+
+	legend.append("rect")
+		.attr("x", xLegend+80)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 40)
+		.attr("fill", "#737E16")
+
+	legend.append("text")
+		.attr("x", xLegend+75)
+		.attr("y", yLegend+50)
+		.text("10%")
+	
+	legend.append("rect")
+		.attr("x", xLegend+120)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 40)
+		.attr("fill", "#595F18")
+
+	legend.append("text")
+		.attr("x", xLegend+115)
+		.attr("y", yLegend+50)
+		.text("25%")
+
+	legend.append("rect")
+		.attr("x", xLegend+160)
+		.attr("y", yLegend+20)
+		.attr("height", 15)
+		.attr("width", 40)
+		.attr("fill", "#384100")
+
+	legend.append("text")
+		.attr("x", xLegend+155)
+		.attr("y", yLegend+50)
+		.text("50%")
+
+	legend.append("text")
+		.attr("x", xLegend+190)
+		.attr("y", yLegend+50)
+		.text(">50%")
+}
+
 function drawVis3Chart(purposes, countriesMap, countriesList)	{
 	let config = getVis3ChartConfig()
 	
@@ -616,10 +747,18 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
 
 	let x = d3.scaleBand()
     .domain(d3.range(cols))
+		.range([0, config.bodyWidth])
+	
+	let xScale = d3.scaleBand()
+    .domain(sortedReceivedCountries.map(c => c.Country))
     .range([0, config.bodyWidth])
 
 	let y = d3.scaleBand()
 		.domain(d3.range(rows))
+		.range([0, config.bodyHeight])
+
+	let yScale = d3.scaleBand()
+		.domain(purposes.map(p => p.Purpose))
 		.range([0, config.bodyHeight])
 
 	let body = config.container.append("g")
@@ -639,31 +778,18 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
     .attr("x", function(d, i) { return x(i) })
     .attr("width", x.bandwidth())
 		.attr("height", y.bandwidth())
-		.style("stroke","#eeeeee")
+		.style("stroke","#ffffff")
 		.style("stroke-width", 1)
 		.style("fill",function(d) { return d })
-	/*
+	
 	row.append("text")
-    .attr("x", 0)
-    .attr("y", y.rangeBand() / 2)
-    .attr("dy", ".32em")
+    .attr("x", -config.margin.left)
+    .attr("y", y.bandwidth() / 2)
     .attr("text-anchor", "end")
 		.text(function(d, i) { return i; });
-	
 
-	let column = config.container.selectAll(".column")
-    .data(columnLabels)
-  	.enter().append("g")
-    .attr("class", "column")
-    .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
-
-	column.append("text")
-    .attr("x", 6)
-    .attr("y", y.rangeBand() / 2)
-    .attr("dy", ".32em")
-    .attr("text-anchor", "start")
-    .text(function(d, i) { return d; });
-	*/
+		drawAxesVis3Chart(purposes, sortedReceivedCountries, xScale, yScale, config)
+		drawLegendVis3Chart(colorScale,config)
 }
 
 function showData() {
