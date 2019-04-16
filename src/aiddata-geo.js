@@ -226,7 +226,7 @@ function getColorFillScale(countries) {
 	let minMax = getMinMaxNet(countries)
 	let colorScale = d3.scaleSqrt()
 		.domain([minMax["min"],0,minMax["max"]])
-		.range(["#7F3233", "#eeeeee","#628C43"])
+		.range(["#CB7569", "#eeeeee","#737E16"])
 		.interpolate(d3.interpolateHcl)
 	
 	return colorScale
@@ -235,7 +235,7 @@ function getColorFillScale(countries) {
 function getColorOutlineScale() {
 	let colorScale = d3.scaleOrdinal()
 		.domain([-1,1])
-		.range(["#7F3233","#628C43"])
+		.range(["#CB7569","#737E16"])
 	return colorScale
 }
 
@@ -253,7 +253,8 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", 1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountDonated))
-		.attr("fill", "#7F3233")
+		.attr("fill", "#CB7569")
+		.attr("opacity","0.9")
 
 	bars.enter().append("rect")
 		.attr("y", (d) => yScale(d.Country))
@@ -261,7 +262,8 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", (d) => xScale(d.AmountDonated)+1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountReceived))
-		.attr("fill", "#628C43")
+		.attr("fill", "#737E16")
+		.attr("opacity","0.9")
 }
 
 function drawAxesVis1Chart(countries, scales, config) {
@@ -300,13 +302,13 @@ function drawLegendVis1Chart(countries, scales, config) {
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+15)
 		.attr("r", 5)
-		.attr("fill", "#7F3233")
+		.attr("fill", "#CB7569")
 
 	legend.append("circle")
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+35)
 		.attr("r", 5)
-		.attr("fill", "#628C43")
+		.attr("fill", "#737E16")
 
 	legend.append("text")
 		.attr("x", xLegend+25)
@@ -587,9 +589,9 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
 		return d3.descending(a.AmountReceived, b.AmountReceived)
 	})
 
-	let greyColorScale = d3.scaleLinear()
-    .domain([0, 1])
-		.range(["#ffffff", "#b2b2b2"])
+	let colorScale = d3.scaleThreshold()
+    .domain([0.01, 0.1, 0.25, 0.5])
+		.range(["#CDC094","#A4A063","#737E16","#595F18","#384100"])
 
 	let rows = purposes.length // one for each purpose
 	let cols = sortedReceivedCountries.length // one for each country
@@ -606,9 +608,9 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
 				countryPurposeAmt = purposes[i].Countries[sortedReceivedCountries[j].Country].Amount
 				countryTotalAmt = purposes[i].Countries[sortedReceivedCountries[j].Country].TotalReceived
 				ratio = countryPurposeAmt/countryTotalAmt
+				console.log(ratio)
 			}
-			matrix[i][j] = greyColorScale(ratio)
-			console.log(ratio)
+			matrix[i][j] = colorScale(ratio)
   	}
 	}
 
@@ -627,10 +629,10 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
     .data(matrix)
 		.enter().append("g")
     .attr("class", "row")
-    .attr("transform", function(d, i) { return "translate(0," + y(i) + ")"; });
+    .attr("transform", function(d, i) { return "translate(0," + y(i) + ")" })
 
 	row.selectAll(".cell")
-    .data(function(d) { return d; })
+    .data(function(d) { return d })
 		.enter()
 		.append("rect")
     .attr("class", "cell")
@@ -639,7 +641,7 @@ function drawVis3Chart(purposes, countriesMap, countriesList)	{
 		.attr("height", y.bandwidth())
 		.style("stroke","#eeeeee")
 		.style("stroke-width", 1)
-		.style("fill",function(d) { return d; });
+		.style("fill",function(d) { return d })
 	/*
 	row.append("text")
     .attr("x", 0)
