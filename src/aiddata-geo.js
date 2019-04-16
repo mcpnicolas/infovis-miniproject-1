@@ -516,7 +516,9 @@ function drawVis2Chart(countries, geo) {
 				return empty
 			})
 			.attr("x",function(d) {
-				return (d.x - 0.75*(Math.sqrt(circleScale(d[2]) / Math.PI)))
+				let thisWidth = d3.select(this).node().getComputedTextLength()
+				if (thisWidth > 2*(Math.sqrt(circleScale(d[2]) / Math.PI))) return d.x - 0.25*thisWidth
+				return (d.x - thisWidth/2)
 			})
 			.attr("y",function(d) {
 				return (d.y)
