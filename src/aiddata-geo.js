@@ -36,6 +36,7 @@ function groupByCountryArray(data) {
 	return result;
 	},{})
 
+	// Convert to array
 	result = Object.keys(result).map(key => result[key])
 	result.sort((a, b) => {
 		return d3.descending(a.AmountDonated-a.AmountReceived, b.AmountDonated-b.AmountReceived)
@@ -68,6 +69,31 @@ function groupByCountryMap(data) {
 	return result;
 	},{})
 
+  	return result
+}
+
+function groupbyPurpose(data) {
+	let result = data.reduce((result, d) => {
+		let currentPurpose = result[d.coalesced_purpose_name] || {
+			"Countries": [{
+				"Recipient": d.recipient,
+				"Amount": parseInt(d.commitment_amount_usd_constant)
+			}]
+		}
+		currentPurpose.Countries.push({
+			"Recipient": d.recipient,
+			"Amount": parseInt(d.commitment_amount_usd_constant)
+		})
+		result[d.coalesced_purpose_name] = currentPurpose
+		return result
+	},{})
+
+	// Convert to array
+	result = Object.keys(result).map(key => result[key])
+	result.sort((a, b) => {
+		return d3.descending(a.Countries.length, b.Countries.length)
+		//return d3.ascending(a.Country, b.Country)
+	})
   	return result
 }
 
@@ -531,9 +557,13 @@ function showData() {
 	let geo = store.geoJSON
 	let countriesList = groupByCountryArray(aiddata)
 	let countriesMap = groupByCountryMap(aiddata)
+	let purposes = groupbyPurpose(aiddata)
+	let topPurposes = purposes.slice(0,5)
 	console.log(countriesList)
 	drawVis1Chart(countriesList)
 	drawVis2Chart(countriesMap, geo)
+	//drawVis3Chart()
+	console.log(topPurposes)
 }
 
 loadData().then(showData);
