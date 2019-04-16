@@ -75,15 +75,16 @@ function groupByCountryMap(data) {
 function groupbyPurpose(data) {
 	let result = data.reduce((result, d) => {
 		let currentPurpose = result[d.coalesced_purpose_name] || {
-			"Countries": [{
-				"Recipient": d.recipient,
-				"Amount": parseInt(d.commitment_amount_usd_constant)
-			}]
+			"Purpose":d.coalesced_purpose_name,
+			"Countries": {}
 		}
-		currentPurpose.Countries.push({
-			"Recipient": d.recipient,
-			"Amount": parseInt(d.commitment_amount_usd_constant)
-		})
+		if (!currentPurpose.Countries[d.recipient]) {
+			currentPurpose.Countries[d.recipient] = {
+				"Name": d.recipient,
+				"Amount": 0
+			}
+		}
+		currentPurpose.Countries[d.recipient].Amount += parseInt(d.commitment_amount_usd_constant)
 		result[d.coalesced_purpose_name] = currentPurpose
 		return result
 	},{})
@@ -92,7 +93,6 @@ function groupbyPurpose(data) {
 	result = Object.keys(result).map(key => result[key])
 	result.sort((a, b) => {
 		return d3.descending(a.Countries.length, b.Countries.length)
-		//return d3.ascending(a.Country, b.Country)
 	})
   	return result
 }
