@@ -507,6 +507,7 @@ function drawVis2Chart(countries, geo) {
 			.append("text")
 			.attr("class","centroid-label")
 			.attr("font-size","4")
+			.attr("fill","#ffffff")
 			.text(function(d) {
 				if (Math.sqrt(circleScale(d[2]) / Math.PI) > 20) {
 					return d[0]
