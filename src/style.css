@@ -81,6 +81,12 @@ h2 {
 	position: absolute;
 }
 
+.centroid-label {
+	z-index: 1;
+	position: absolute;
+	font-size: 12;
+}
+
 #Vis2Chart path, #Vis2Chart circle {
 	z-index: -1;
 	position: relative;

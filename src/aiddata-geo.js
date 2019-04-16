@@ -170,7 +170,7 @@ function getLinearScaleValueToArea(countries) {
     let maxCircleArea = Math.PI * Math.pow(maxCircleRadius, 2);
     let circleAreaScale = d3.scaleLinear()
     	.domain([minMaxTotal["min"], minMaxTotal["max"]])
-    	.range([10, maxCircleArea])
+    	.range([5, maxCircleArea])
 	
 	return circleAreaScale;
 }
@@ -179,7 +179,7 @@ function getColorFillScale(countries) {
 	let minMax = getMinMaxNet(countries)
 	let colorScale = d3.scaleSqrt()
 		.domain([minMax["min"],0,minMax["max"]])
-		.range(["#DB6549", "#f2f2f2","#045431"])
+		.range(["#7F3233", "#eeeeee","#628C43"])
 		.interpolate(d3.interpolateHcl)
 	
 	return colorScale
@@ -188,7 +188,7 @@ function getColorFillScale(countries) {
 function getColorOutlineScale() {
 	let colorScale = d3.scaleOrdinal()
 		.domain([-1,1])
-		.range(["#DB6549","#045431"])
+		.range(["#7F3233","#628C43"])
 	return colorScale
 }
 
@@ -206,7 +206,7 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", 1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountDonated))
-		.attr("fill", "#DB6549")
+		.attr("fill", "#7F3233")
 
 	bars.enter().append("rect")
 		.attr("y", (d) => yScale(d.Country))
@@ -214,7 +214,7 @@ function drawBarsVis1Chart(countries, scales, config) {
 		.attr("x", (d) => xScale(d.AmountDonated)+1)
 		.attr("height", yScale.bandwidth())
 		.attr("width", (d) => xScale(d.AmountReceived))
-		.attr("fill", "#045431")
+		.attr("fill", "#628C43")
 }
 
 function drawAxesVis1Chart(countries, scales, config) {
@@ -253,13 +253,13 @@ function drawLegendVis1Chart(countries, scales, config) {
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+15)
 		.attr("r", 5)
-		.attr("fill", "#DB6549")
+		.attr("fill", "#7F3233")
 
 	legend.append("circle")
 		.attr("cx", xLegend+15)
 		.attr("cy", yLegend+35)
 		.attr("r", 5)
-		.attr("fill", "#045431")
+		.attr("fill", "#628C43")
 
 	legend.append("text")
 		.attr("x", xLegend+25)
@@ -331,31 +331,46 @@ function drawLegendVis2Chart(divergingColorScale, circleAreaScale, config, minNe
 		.text("$" + (maxNet/1000000000).toString().substring(0,3) + "B")
 
 	legend.append("text")
+		.attr("x", xLegend+110)
+		.attr("y", yLegend+185)
+		.text("$" + ((0.01*maxTotal)/1000000000).toString().substring(0,1) + "B")
+
+	legend.append("text")
+		.attr("x", xLegend+103)
+		.attr("y", yLegend+230)
+		.text("$" + (maxTotal/1000000000).toString().substring(0,3) + "B")
+
+	legend.append("text")
 		.attr("x", xLegend+45)
 		.attr("y", yLegend+80)
 		.text("Total Amount Exchanged")
 
+	legend.append("text")
+		.attr("x", xLegend+63)
+		.attr("y", yLegend+95)
+		.text("(Received + Donated)")
+
 	legend.append("circle")
 		.attr("class","legend-circle-max")
 		.attr("cx", xLegend+120)
-		.attr("cy", yLegend+145)
-		.attr("r", function() { 
+		.attr("cy", yLegend+165)
+		.attr("r", function() {
 			let area = circleAreaScale(maxTotal)
 			return Math.sqrt(area / Math.PI)
 		})
 		.attr("fill", "transparent")
-		.attr("stroke", "#000000")
+		.attr("stroke", "#9b9b9b")
 
 	legend.append("circle")
 		.attr("class","legend-circle-min")
 		.attr("cx", xLegend+120)
-		.attr("cy", yLegend+145)
+		.attr("cy", yLegend+165)
 		.attr("r", function() { 
-			let area = circleAreaScale(minTotal)
+			let area = circleAreaScale(0.01*maxTotal)
 			return Math.sqrt(area / Math.PI)
 		})
 		.attr("fill", "transparent")
-		.attr("stroke", "#000000")
+		.attr("stroke", "#9b9b9b")
 		
 }
 
@@ -466,7 +481,7 @@ function drawVis2Chart(countries, geo) {
 			return d[1][1]
 		  }))
 		.on('tick', ticked)
-	  
+
 	function ticked() {
 		var distribution = container.selectAll('.centroid').data(centroids)
 	
@@ -475,15 +490,37 @@ function drawVis2Chart(countries, geo) {
 			.attr('r', function(d) {
 				return d.radius
 			})
-			.merge(distribution).attr('cx', function(d) {
+			.merge(distribution)
+			.attr('cx', function(d) {
 				return d.x
 			})
 			.attr('cy', function(d) {
 				return d.y
 			})
-		
+			
 		distribution.exit().remove()
 	}
+
+	setTimeout(function() {
+		container.selectAll('.centroid').data(centroids).select(".centroid").data(centroids)
+			.enter()
+			.append("text")
+			.attr("class","centroid-label")
+			.attr("font-size","4")
+			.text(function(d) {
+				if (Math.sqrt(circleScale(d[2]) / Math.PI) > 20) {
+					return d[0]
+				}
+				let empty = ""
+				return empty
+			})
+			.attr("x",function(d) {
+				return (d.x - 0.75*(Math.sqrt(circleScale(d[2]) / Math.PI)))
+			})
+			.attr("y",function(d) {
+				return (d.y)
+			})
+	}, (2 * 1000))
 }
 
 function showData() {
