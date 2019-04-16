@@ -92,9 +92,9 @@ function groupbyPurpose(data) {
 	// Convert to array
 	result = Object.keys(result).map(key => result[key])
 	result.sort((a, b) => {
-		return d3.descending(a.Countries.length, b.Countries.length)
+		return d3.descending(Object.keys(a.Countries).length,Object.keys(b.Countries).length)
 	})
-  	return result
+  return result
 }
 
 function getVis1ChartConfig() {
@@ -146,6 +146,27 @@ function getMapProjection(config) {
 				
 	store.mapProjection = projection;
 	return projection;
+}
+
+function getVis3ChartConfig() {
+	let width = 825;
+	let height = 500;
+	let margin = {
+		top: 100,
+		bottom: 10,
+		left: 100,
+		right: 10
+	}
+	let bodyHeight = height - margin.top - margin.bottom
+	let bodyWidth = width - margin.left - margin.right
+
+	let container = d3.select("#Vis3Chart")
+	
+	container
+		.attr("width", width)
+		.attr("height", height)
+
+	return { width, height, margin, bodyHeight, bodyWidth, container }
 }
 
 function getVis1ChartScales(countries, config) {
@@ -469,7 +490,7 @@ function drawVis2Chart(countries, geo) {
 			}
 		}
 	}
-	console.log(centroids)
+	//console.log(centroids)
 	
 	container.selectAll("path").data(geo.features)
 		.enter().append("path")
@@ -552,6 +573,97 @@ function drawVis2Chart(countries, geo) {
 	}, (2 * 1000))
 }
 
+function drawVis3Chart(purposes, countriesMap, countriesList)	{
+	let config = getVis3ChartConfig()
+	
+	for (p in purposes) {
+		for (c in purposes[p].Countries) {
+			// adding total received amount to country
+			purposes[p].Countries[c].TotalReceived = countriesMap[purposes[p].Countries[c].Name].AmountReceived
+		}
+	}
+	let sortedReceivedCountries = countriesList.sort((a, b) => {
+		// sorting all countries by received descending
+		return d3.descending(a.AmountReceived, b.AmountReceived)
+	})
+
+	let greyColorScale = d3.scaleLinear()
+    .domain([0, 1])
+		.range(["#ffffff", "#b2b2b2"])
+
+	let rows = purposes.length // one for each purpose
+	let cols = sortedReceivedCountries.length // one for each country
+
+	let matrix = new Array(rows)
+	for (var i = 0; i < rows; i++) {
+  	matrix[i] = new Array(cols)
+  	for (var j = 0; j < cols; j++) {
+			let countryPurposeAmt
+			let countryTotalAmt
+			// if country has not received any money for this purpose
+			if (!purposes[i].Countries[sortedReceivedCountries[j].Country]) ratio = 0
+			else { // calculate ratio of this amount to all donations received
+				countryPurposeAmt = purposes[i].Countries[sortedReceivedCountries[j].Country].Amount
+				countryTotalAmt = purposes[i].Countries[sortedReceivedCountries[j].Country].TotalReceived
+				ratio = countryPurposeAmt/countryTotalAmt
+			}
+			matrix[i][j] = greyColorScale(ratio)
+			console.log(ratio)
+  	}
+	}
+
+	let x = d3.scaleBand()
+    .domain(d3.range(cols))
+    .range([0, config.bodyWidth])
+
+	let y = d3.scaleBand()
+		.domain(d3.range(rows))
+		.range([0, config.bodyHeight])
+
+	let body = config.container.append("g")
+		.style("transform", `translate(${config.margin.left}px,${config.margin.top}px)`)
+
+	let row = body.selectAll(".row")
+    .data(matrix)
+		.enter().append("g")
+    .attr("class", "row")
+    .attr("transform", function(d, i) { return "translate(0," + y(i) + ")"; });
+
+	row.selectAll(".cell")
+    .data(function(d) { return d; })
+		.enter()
+		.append("rect")
+    .attr("class", "cell")
+    .attr("x", function(d, i) { return x(i) })
+    .attr("width", x.bandwidth())
+		.attr("height", y.bandwidth())
+		.style("stroke","#eeeeee")
+		.style("stroke-width", 1)
+		.style("fill",function(d) { return d; });
+	/*
+	row.append("text")
+    .attr("x", 0)
+    .attr("y", y.rangeBand() / 2)
+    .attr("dy", ".32em")
+    .attr("text-anchor", "end")
+		.text(function(d, i) { return i; });
+	
+
+	let column = config.container.selectAll(".column")
+    .data(columnLabels)
+  	.enter().append("g")
+    .attr("class", "column")
+    .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+
+	column.append("text")
+    .attr("x", 6)
+    .attr("y", y.rangeBand() / 2)
+    .attr("dy", ".32em")
+    .attr("text-anchor", "start")
+    .text(function(d, i) { return d; });
+	*/
+}
+
 function showData() {
 	let aiddata = store.aiddata
 	let geo = store.geoJSON
@@ -559,11 +671,11 @@ function showData() {
 	let countriesMap = groupByCountryMap(aiddata)
 	let purposes = groupbyPurpose(aiddata)
 	let topPurposes = purposes.slice(0,5)
-	console.log(countriesList)
+	console.log(countriesMap)
+	console.log(topPurposes)
 	drawVis1Chart(countriesList)
 	drawVis2Chart(countriesMap, geo)
-	//drawVis3Chart()
-	console.log(topPurposes)
+	drawVis3Chart(topPurposes, countriesMap, countriesList)	
 }
 
 loadData().then(showData);
